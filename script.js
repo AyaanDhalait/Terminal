@@ -3,6 +3,8 @@ const input=document.getElementById("input")
 const themeBtn=document.getElementById("themeBtn")
 const clearBtn=document.getElementById("clearBtn")
 
+const GITHUB_USERNAME="AyaanDhalait"
+
 const banner=`
  █████╗ ██╗   ██╗ █████╗  █████╗ ███╗   ██╗
 ██╔══██╗╚██╗ ██╔╝██╔══██╗██╔══██╗████╗  ██║
@@ -13,8 +15,8 @@ const banner=`
 `
 
 const intro=`
-AyaanOS Web Terminal v1.0
-Simulation Layer Active
+AyaanOS Web Terminal v2.0
+Portfolio Mode Active
 Type 'help' to view commands.
 `
 
@@ -39,63 +41,65 @@ addLine("")
 
 boot()
 
-const fileSystem={
-"/": ["core","apps","logs"],
-"/core": ["kernel.sys","memory.cfg"],
-"/apps": ["clock.app","matrix.app","calc.app"],
-"/logs": ["system.log"]
-}
-
 const commands={
 help:()=>`
-help        list commands
-ls          list directory
-cd [dir]    change directory
-run [app]   launch app
-echo [msg]  print message
+about       who I am
+projects    list my GitHub projects
+contact     how to reach me
+socials     links
 theme       toggle theme
 clear       clear screen
 `,
-ls:()=>fileSystem[currentDir]?.join("  ") || "Directory empty.",
-cd:(arg)=>{
-if(!arg)return "Specify directory."
-let path=arg.startsWith("/")?arg:currentDir+"/"+arg
-if(fileSystem[path]){
-currentDir=path
-return "Entered "+path
+
+about:()=>`
+Hi, I'm Ayaan 👋
+Indie Game Developer & Full-Stack Developer
+
+I build games, tools, and interactive apps using Python, Pygame, and web tech.
+`,
+
+contact:()=>`
+Email: mr.dhalait@gmail.com
+LinkedIn: https://linkedin.com/in/ayaan-dhalait
+GitHub: https://github.com/AyaanDhalait
+`,
+
+socials:()=>`
+GitHub: https://github.com/AyaanDhalait
+LinkedIn: https://linkedin.com/in/ayaan-dhalait
+`,
+
+projects:async ()=>{
+addLine("Fetching projects from GitHub...","muted")
+try{
+const res=await fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos`)
+const data=await res.json()
+if(!data.length)return"No projects found."
+let output=""
+data.slice(0,6).forEach(repo=>{
+output+=`\n📦 ${repo.name}\n`
+output+=`   ${repo.description||"No description"}\n`
+output+=`   ⭐ ${repo.stargazers_count} | 🍴 ${repo.forks_count}\n`
+output+=`   ${repo.html_url}\n`
+})
+return output
+}catch{
+return"Failed to fetch projects."
 }
-return "Directory not found."
 },
-run:(arg)=>{
-if(arg==="clock.app"){
-return "Time: "+new Date().toLocaleTimeString()
-}
-if(arg==="matrix.app"){
-startMatrix()
-return ""
-}
-if(arg==="calc.app"){
-return "Calculator ready. Use: calc 5+5"
-}
-return "App not found."
-},
-echo:(arg)=>arg||"",
-calc:(arg)=>{
-try{return eval(arg).toString()}
-catch{return "Invalid expression."}
-},
+
 theme:()=>{
 document.body.classList.toggle("light")
-return "Theme switched."
+return"Theme switched."
 },
+
 clear:()=>{
 buffer.innerHTML=""
 boot()
-return ""
+return""
 }
 }
 
-let currentDir="/"
 let history=[]
 let index=0
 
@@ -111,7 +115,11 @@ const cmd=parts[0]
 const arg=parts.slice(1).join(" ")
 if(commands[cmd]){
 const result=commands[cmd](arg)
+if(result instanceof Promise){
+result.then(res=>{if(res)printBlock(res)})
+}else{
 if(result)printBlock(result)
+}
 }else{
 addLine("Unknown command.","muted")
 }
@@ -125,15 +133,6 @@ if(index<history.length-1){index++;input.value=history[index]}
 else{index=history.length;input.value=""}
 }
 })
-
-function startMatrix(){
-let i=0
-const interval=setInterval(()=>{
-addLine(Math.random().toString(36).substring(2,15),"muted")
-i++
-if(i>20)clearInterval(interval)
-},50)
-}
 
 themeBtn.onclick=()=>commands.theme()
 clearBtn.onclick=()=>commands.clear()
